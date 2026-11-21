@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bingo Latrell City</title>
+<style>
+:root{--gold:#ffe680}*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:radial-gradient(circle at 30% 0,#3a1a78,#12072e 70%);color:#fff;font-family:system-ui,sans-serif;display:grid;place-items:center;padding:16px}
+[hidden]{display:none!important}
+.panel{background:linear-gradient(160deg,#3b2494,#1a0f4d);border:3px solid var(--gold);border-radius:16px;padding:16px 18px;box-shadow:0 0 18px #7b4dff55;width:100%;max-width:460px;margin:8px 0}
+h1{margin:0 0 4px;text-align:center;font:900 24px Impact,"Arial Black",sans-serif;letter-spacing:2px;color:var(--gold)}
+h2{margin:0 0 8px;font-size:15px;color:var(--gold)}
+p{margin:6px 0;font-size:13px;opacity:.85;line-height:1.4}
+img{display:block;margin:0 auto 6px;width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--gold)}
+label{display:block;font-size:13px;margin:10px 0 4px}
+input{width:100%;font-size:16px;padding:9px 10px;border-radius:8px;border:2px solid #fff5;background:#120a38;color:#fff}
+button{background:#ff4fa3;color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:15px;font-weight:700;cursor:pointer}button:disabled{opacity:.5}
+.row{display:flex;gap:6px;align-items:center;margin-top:5px}.row input{flex:1;font-size:13px}
+.pre{font-size:12px;opacity:.7;margin-top:4px;word-break:break-all}
+.msg{min-height:18px;margin-top:8px;font-size:13px;color:#ffb3b3;text-align:center}
+.warn{background:#ffd23f22;border:1px solid #ffd23f88;border-radius:8px;padding:8px;font-size:12px;margin-top:10px}
+</style></head><body><div style="width:100%;max-width:460px">
+<div class="panel" style="text-align:center"><img src="/frog.jpg" alt=""><h1>BINGO EN VIVO</h1><p>Latrell City</p></div>
+
+<div class="panel" id="mk">
+ <h2>🎤 Crear mi partida (anfitriones)</h2>
+ <label for="ak">Clave de anfitrión</label><input id="ak" type="password" autocomplete="off" placeholder="La clave que te dieron">
+ <label for="cd">Nombre del enlace <span style="opacity:.6">(opcional)</span></label><input id="cd" maxlength="30" autocomplete="off" placeholder="ej: latrell-city (vacío = aleatorio)">
+ <div class="pre" id="pv"></div>
+ <div style="text-align:center;margin-top:12px"><button id="go">✨ Crear mi partida</button></div>
+ <div class="msg" id="msg"></div>
+</div>
+
+<div class="panel" id="ok" hidden>
+ <h2>✅ ¡Tu partida está lista!</h2>
+ <b style="font-size:13px">👥 Enlace para participantes</b>
+ <div class="row"><input id="lp" readonly><button id="c1" style="background:#2fa84f;padding:8px 10px;font-size:13px">📋</button></div>
+ <b style="font-size:13px;display:block;margin-top:10px">🎛️ Tu panel de anfitrión (privado)</b>
+ <div class="row"><input id="lh" readonly><button id="c2" style="background:#2fa84f;padding:8px 10px;font-size:13px">📋</button></div>
+ <div class="warn">⚠️ Guarda el enlace del panel: <b>no se vuelve a mostrar</b>. No lo compartas: quien lo tenga controla tu partida. Desde el panel podrás cambiar el enlace de participantes cuando quieras.</div>
+ <div style="text-align:center;margin-top:12px"><button id="op">Abrir mi panel →</button></div>
+</div>
+
+<div class="panel">
+ <h2>🎟️ ¿Eres participante?</h2>
+ <p>Abre el enlace que te dio tu anfitrión, o escribe el código de la partida:</p>
+ <div class="row"><input id="jc" maxlength="30" autocomplete="off" placeholder="código de la partida"><button id="jg" style="padding:8px 12px;font-size:14px">Entrar</button></div>
+</div>
+</div>
+<script>
+const $=id=>document.getElementById(id),O=location.origin,norm=s=>s.trim().toLowerCase().replace(/\s+/g,'-');
+const upd=()=>{const c=norm($('cd').value);$('pv').textContent=O+'/s/'+(c||'(aleatorio)')};$('cd').oninput=upd;upd();
+let H='';
+$('go').onclick=async()=>{const b=$('go');b.disabled=true;$('msg').textContent='Creando…';
+ try{const r=await fetch('/crear',{method:'POST',body:JSON.stringify({adminKey:$('ak').value,code:$('cd').value})}),j=await r.json().catch(()=>({}));
+  if(!r.ok){$('msg').textContent=r.status===403?'Clave incorrecta.':r.status===429?'Demasiados intentos. Espera unos minutos.':r.status===409?'Ese nombre ya está en uso. Prueba otro.':r.status===400?'Nombre no válido: usa de 3 a 30 letras, números o guiones.':r.status===503?'No hay espacio para más partidas ahora.':'No se pudo crear.';b.disabled=false;return}
+  $('lp').value=O+'/s/'+j.code;H=O+'/s/'+j.code+'/host?key='+j.hostKey;$('lh').value=H;$('mk').hidden=true;$('ok').hidden=false;$('msg').textContent=''}
+ catch(e){$('msg').textContent='Sin conexión con el servidor.';b.disabled=false}};
+const cp=(i,b)=>{const t=$(i).value;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).catch(()=>{$(i).select();document.execCommand('copy')}).then(()=>{$(b).textContent='✅';setTimeout(()=>{$(b).textContent='📋'},1800)},()=>{})};
+$('c1').onclick=()=>cp('lp','c1');$('c2').onclick=()=>cp('lh','c2');$('op').onclick=()=>{location.href=H};
+const join=()=>{const c=norm($('jc').value);if(c)location.href='/s/'+encodeURIComponent(c)};$('jg').onclick=join;$('jc').onkeydown=e=>{if(e.key==='Enter')join()};
+$('ak').onkeydown=e=>{if(e.key==='Enter')$('go').click()};
+</script></body></html>

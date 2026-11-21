@@ -1,0 +1,26 @@
+// Pruebas del motor (sin dependencias): node test.js
+const fs=require('fs'),assert=require('assert');
+const src=fs.readFileSync(__dirname+'/server.js','utf8');
+const createEngine=new Function(src.slice(src.indexOf('function createEngine'),src.indexOf('//#ENGINE-END'))+';return createEngine')();
+let k=0;const E=createEngine(()=>'id'+ ++k),H=(p,b)=>E.api('POST',p,{},b||{},true);
+const a=E.api('POST','/join',{},{name:'Ana'}),b=E.api('POST','/join',{},{name:'ana'});
+assert.equal(a[0],200);assert.notEqual(a[1].name.toLowerCase(),b[1].name.toLowerCase(),'nombres únicos');
+assert.equal(a[1].cards[0].length,16,'cartilla 4x4 = 16 números');
+assert.ok(a[1].cards[0].every(n=>n>=1&&n<=60)&&new Set(a[1].cards[0]).size===16,'16 números distintos del 1 al 60');
+assert.equal(a[1].t,0,'por defecto platino');
+assert.equal(E.api('POST','/join',{},{name:'<b>x​</b>'})[1].name,'bx/b','limpia <> y caracteres invisibles');
+assert.equal(E.api('POST','/draw',{},{},false)[0],403,'sorteo exige clave');
+assert.equal(H('/tier',{name:'Ana'})[1].t,1,'cambia a dorado');
+assert.equal(E.api('POST','/tier',{},{name:'Ana'},false)[0],403,'cambiar categoría exige clave');
+assert.equal(E.snap().top.find(x=>x[0]==='Ana')[3],1,'la lista muestra la categoría');
+H('/config',{t:0,places:2});H('/config',{t:1,places:1,prizes:['Oro','','','','']});
+assert.equal(E.snap().prizes[1][0],'Oro');
+let n=0;while(H('/draw')[0]===200&&n<70)n++;
+const s=E.snap();assert.ok(s.over,'la partida termina');assert.ok(new Set(s.called).size===s.called.length,'sin repetidos');
+assert.ok(s.win[0].length&&s.win[0][0].place===1,'hay ganadores platino');
+assert.ok(s.win[1].length===1&&s.win[1][0].names[0]==='Ana','Ana gana solo en dorado');
+assert.ok(!s.win[0].some(g=>g.names.includes('Ana')),'un dorado no gana en platino');
+assert.equal(H('/tier',{name:'Ana'})[0],409,'no se cambia de categoría con la partida empezada');
+H('/reset');assert.equal(E.snap().called.length,0);assert.equal(E.snap().round,2);
+assert.equal(E.snap().top.find(x=>x[0]==='Ana')[3],1,'la categoría se conserva en Nueva partida');
+console.log('OK: todas las pruebas pasaron');
